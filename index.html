@@ -141,6 +141,32 @@
   }
   .searchbar input::placeholder{color:#A8A399;}
   .searchbar svg{flex-shrink:0;}
+
+  .sort-tabs{
+    display:flex;
+    gap:6px;
+    margin:10px 2px 0;
+  }
+  .sort-pill{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.03em;
+    padding:6px 12px;
+    border-radius:20px;
+    border:1px solid var(--hairline);
+    background:var(--paper);
+    color:var(--ink-soft);
+    cursor:pointer;
+    user-select:none;
+    transition:background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .sort-pill.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:var(--paper);
+  }
+
   .result-count{
     font-family:'IBM Plex Mono',monospace;
     font-size:11.5px;
@@ -388,6 +414,11 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#A8A399" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="searchInput" type="text" placeholder="Ketik kata kunci, misal: ukuran, ori, restock…">
     </div>
+    <div class="sort-tabs">
+      <div class="sort-pill active" data-sort="terbaru">Terbaru</div>
+      <div class="sort-pill" data-sort="terpopuler">Terpopuler</div>
+      <div class="sort-pill" data-sort="relevan">Relevan</div>
+    </div>
     <div class="result-count" id="resultCount"></div>
     <div class="taglist" id="taglist"></div>
   </section>
@@ -474,12 +505,14 @@ function escapeHtml(str){
 }
 
 let searchDebounce;
+let currentSort = 'terbaru';
+
 async function doSearch(keyword){
   clearTimeout(searchDebounce);
   searchDebounce = setTimeout(async () => {
     renderLoading();
     try {
-      const data = await callApi({ action: 'searchComments', keyword });
+      const data = await callApi({ action: 'searchComments', keyword, sortType: currentSort });
       if(data.error){ renderError(data.error); return; }
       renderComments(data.results || []);
     } catch(err){
@@ -489,6 +522,16 @@ async function doSearch(keyword){
 }
 searchInput.addEventListener('input', e => doSearch(e.target.value));
 doSearch(''); // load awal — tampilkan komentar terbaru
+
+document.querySelectorAll('.sort-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    if(pill.classList.contains('active')) return;
+    document.querySelectorAll('.sort-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    currentSort = pill.dataset.sort;
+    doSearch(searchInput.value);
+  });
+});
 
 /* ---------- Detail overlay ---------- */
 const overlay = document.getElementById('overlay');
