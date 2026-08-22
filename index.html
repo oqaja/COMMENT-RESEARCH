@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#EFEDE7">
+<title>Comment Research — Shoe Police</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#EFEDE7;
+    --paper:#FAF8F4;
+    --ink:#1C1B19;
+    --ink-soft:#5B584F;
+    --orange:#FF4E1F;
+    --teal:#0F5C56;
+    --hairline:#D8D3C7;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--orange);color:#fff;}
+
+  /* ===== Header ===== */
+  header{
+    padding:20px 16px 0;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--teal);
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+    background:var(--orange);
+    display:inline-block;
+  }
+  h1{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:800;
+    text-transform:uppercase;
+    font-size:34px;
+    line-height:.95;
+    letter-spacing:.01em;
+    margin:6px 0 2px;
+  }
+  .sub{
+    color:var(--ink-soft);
+    font-size:14px;
+    margin:0 0 16px;
+  }
+
+  /* ===== Tabs ===== */
+  .tabs{
+    display:flex;
+    gap:6px;
+    max-width:640px;
+    margin:0 auto;
+    padding:0 16px;
+    position:sticky;
+    top:0;
+    background:var(--canvas);
+    z-index:10;
+    padding-top:4px;
+  }
+  .tab{
+    flex:1;
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:15px;
+    letter-spacing:.02em;
+    text-align:center;
+    padding:12px 8px 10px;
+    background:var(--paper);
+    border:1px solid var(--hairline);
+    border-bottom:none;
+    border-radius:10px 10px 0 0;
+    color:var(--ink-soft);
+    cursor:pointer;
+    user-select:none;
+    transition:color .15s ease, background .15s ease;
+  }
+  .tab.active{
+    color:var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .tab-underline{
+    max-width:640px;
+    margin:0 auto;
+    padding:0 16px;
+    border-bottom:1px solid var(--hairline);
+  }
+
+  main{
+    max-width:640px;
+    margin:0 auto;
+    padding:18px 16px 80px;
+  }
+  .view{display:none;animation:fade .25s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ===== Search ===== */
+  .searchbar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--paper);
+    border:1px solid var(--hairline);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:6px;
+  }
+  .searchbar input{
+    flex:1;
+    border:none;
+    outline:none;
+    background:transparent;
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    color:var(--ink);
+  }
+  .searchbar input::placeholder{color:#A8A399;}
+  .searchbar svg{flex-shrink:0;}
+  .result-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin:10px 2px 14px;
+    letter-spacing:.02em;
+  }
+  .result-count b{color:var(--ink);}
+
+  /* ===== Hangtag card (signature element) ===== */
+  .taglist{display:flex;flex-direction:column;gap:10px;}
+  .tag-card{
+    position:relative;
+    background:var(--paper);
+    border:1px solid var(--hairline);
+    border-radius:var(--radius);
+    padding:16px 16px 14px 34px;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  .tag-card:hover{
+    transform:translateY(-1px);
+    box-shadow:0 6px 16px rgba(28,27,25,.08);
+    border-color:#C9C3B3;
+  }
+  .tag-card:active{transform:translateY(0);}
+  /* punch hole */
+  .tag-card::before{
+    content:"";
+    position:absolute;
+    left:14px; top:16px;
+    width:9px;height:9px;
+    border-radius:50%;
+    background:var(--canvas);
+    border:1.5px solid var(--hairline);
+  }
+  .tag-card::after{
+    content:"";
+    position:absolute;
+    left:18.5px; top:20px; bottom:14px;
+    width:1px;
+    background:repeating-linear-gradient(to bottom, var(--hairline) 0 4px, transparent 4px 8px);
+  }
+  .tag-name{
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--teal);
+    margin:0 0 4px;
+  }
+  .tag-comment{
+    font-size:14.5px;
+    line-height:1.45;
+    margin:0 0 10px;
+    color:var(--ink);
+  }
+  .tag-meta{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+  }
+  .tag-meta .likes{
+    display:flex;align-items:center;gap:4px;
+    color:var(--orange);
+    font-weight:600;
+  }
+  .video-chip{
+    display:inline-block;
+    margin-top:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--teal);
+    background:#E6F1EF;
+    border:1px solid #C7DEDA;
+    padding:3px 8px;
+    border-radius:20px;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  /* ===== Insight tab ===== */
+  .insight-updated{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-bottom:16px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .insight-updated .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);}
+  .theme-card{
+    background:var(--paper);
+    border:1px solid var(--hairline);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:12px;
+  }
+  .theme-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:8px;
+  }
+  .theme-title{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:18px;
+    letter-spacing:.01em;
+  }
+  .theme-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--orange);
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .theme-bar-track{
+    height:6px;
+    background:var(--canvas);
+    border-radius:4px;
+    overflow:hidden;
+    margin-bottom:10px;
+  }
+  .theme-bar-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--orange), #FF7A4D);
+    border-radius:4px;
+  }
+  .theme-summary{
+    font-size:14px;
+    line-height:1.5;
+    color:var(--ink);
+    margin:0 0 10px;
+  }
+  .theme-examples{
+    border-top:1px dashed var(--hairline);
+    padding-top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .theme-examples .ex{
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.4;
+    padding-left:14px;
+    position:relative;
+  }
+  .theme-examples .ex::before{
+    content:"“";
+    position:absolute;left:0;top:-2px;
+    color:var(--orange);
+    font-family:'Big Shoulders Display',sans-serif;
+    font-size:16px;
+  }
+
+  /* ===== Detail overlay ===== */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(28,27,25,.45);
+    display:none;
+    align-items:flex-end;
+    z-index:100;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--paper);
+    width:100%;
+    max-width:640px;
+    margin:0 auto;
+    border-radius:20px 20px 0 0;
+    padding:22px 20px 28px;
+    max-height:82vh;
+    overflow-y:auto;
+    animation:up .2s ease;
+  }
+  @keyframes up{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .sheet-handle{
+    width:36px;height:4px;background:var(--hairline);
+    border-radius:4px;margin:0 auto 18px;
+  }
+  .sheet dl{margin:0;}
+  .sheet dt{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-soft);
+    margin-top:14px;
+  }
+  .sheet dt:first-child{margin-top:0;}
+  .sheet dd{
+    margin:4px 0 0;
+    font-size:14.5px;
+    line-height:1.5;
+  }
+  .sheet .close-btn{
+    display:block;
+    margin:22px auto 0;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    padding:12px 24px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+
+  .empty{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Shoe Police · Riset Audience</div>
+  <h1>Comment Research</h1>
+  <p class="sub">Dengerin apa yang penonton bahas &amp; minta di kolom komentar.</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-view="search">Cari Komentar</div>
+  <div class="tab" data-view="insight">Insight &amp; Tema</div>
+</div>
+<div class="tab-underline"></div>
+
+<main>
+
+  <!-- ===== SEARCH VIEW ===== -->
+  <section id="view-search" class="view active">
+    <div class="searchbar">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#A8A399" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="searchInput" type="text" placeholder="Ketik kata kunci, misal: ukuran, ori, restock…">
+    </div>
+    <div class="result-count" id="resultCount"></div>
+    <div class="taglist" id="taglist"></div>
+  </section>
+
+  <!-- ===== INSIGHT VIEW ===== -->
+  <section id="view-insight" class="view">
+    <div class="insight-updated"><span class="dot"></span>Diperbarui harian · terakhir 21:00, <span id="insightDate"></span></div>
+    <div id="themeList"></div>
+  </section>
+
+</main>
+
+<!-- ===== Detail overlay ===== -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <dl id="sheetContent"></dl>
+    <button class="close-btn" id="closeBtn">Tutup</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   MOCK DATA — ganti dengan fetch ke Apps Script Web App saat backend siap.
+   Pola pemanggilan API sama seperti project PWA lain: pakai POST dengan
+   Content-Type: text/plain (hindari CORS preflight), body berisi JSON
+   { action: "searchComments" | "getThemes", ...params }.
+
+   const API_URL = "https://script.google.com/macros/s/XXXX/exec";
+   async function callApi(payload){
+     const res = await fetch(API_URL, {
+       method: "POST",
+       headers: { "Content-Type": "text/plain;charset=utf-8" },
+       body: JSON.stringify(payload)
+     });
+     return res.json();
+   }
+===================================================================== */
+
+const MOCK_COMMENTS = [
+  {id:"c1", nama:"rafi_kicks", komentar:"Bang ini sepatunya masih ready ga size 42? udah nyari kemana2 abis mulu", likes:214, tanggal:"2026-08-21", judul:"Kenapa Harga Sneaker Lokal Segini Mahal?", balasan:false},
+  {id:"c2", nama:"denaputri", komentar:"Request dong bahas soal shoe last, penasaran kenapa sepatu lokal kadang sempit banget", likes:132, tanggal:"2026-08-20", judul:"Rahasia di Balik Ukuran Sepatu", balasan:false},
+  {id:"c3", nama:"maul.sneaks", komentar:"Ini beneran ori kan bang? soalnya banyak yg jual mirip tapi murah bgt", likes:98, tanggal:"2026-08-21", judul:"Cara Cek Sepatu KW vs Original", balasan:true},
+  {id:"c4", nama:"zharaa", komentar:"Kapan restock warna hitam min, dari kemarin abis terus", likes:301, tanggal:"2026-08-19", judul:"Unboxing Collab Terbaru", balasan:false},
+  {id:"c5", nama:"yoga_std", komentar:"Margin brand lokal segitu ternyata, pantes harganya segini. Video paling worth ditonton bulan ini", likes:410, tanggal:"2026-08-18", judul:"Segini Margin Untung Brand Sepatu Lokal", balasan:false},
+  {id:"c6", nama:"kirei.b", komentar:"Bahas dong perbedaan sole TPU sama EVA, banyak yg salah kaprah", likes:76, tanggal:"2026-08-17", judul:"Rahasia di Balik Ukuran Sepatu", balasan:false},
+];
+
+const MOCK_THEMES = [
+  {tema:"Ketersediaan Ukuran & Restock", jumlah:187, ringkasan:"Penonton paling sering nanya ketersediaan size tertentu dan kapan warna favorit mereka restock — sinyal kuat demand belum ke-cover stok.", contoh:["Bang ini sepatunya masih ready ga size 42?","Kapan restock warna hitam min, dari kemarin abis terus"]},
+  {tema:"Keaslian Produk (Ori vs KW)", jumlah:124, ringkasan:"Banyak yang khawatir soal keaslian, terutama pas ada video harga/margin — trust jadi concern utama sebelum beli.", contoh:["Ini beneran ori kan bang? soalnya banyak yg jual mirip tapi murah"]},
+  {tema:"Request Konten Edukasi Teknis", jumlah:96, ringkasan:"Muncul cukup sering permintaan bahas hal teknis kayak shoe last, jenis sole, dan proses produksi.", contoh:["Request dong bahas soal shoe last","Bahas dong perbedaan sole TPU sama EVA"]},
+];
+
+/* ---------- Render: Search ---------- */
+const taglist = document.getElementById('taglist');
+const resultCount = document.getElementById('resultCount');
+const searchInput = document.getElementById('searchInput');
+
+function renderComments(list){
+  if(list.length === 0){
+    taglist.innerHTML = '<div class="empty">Ga ada komentar yang cocok. Coba kata kunci lain.</div>';
+    resultCount.textContent = '';
+    return;
+  }
+  resultCount.innerHTML = `<b>${list.length}</b> komentar ditemukan`;
+  taglist.innerHTML = list.map(c => `
+    <div class="tag-card" data-id="${c.id}">
+      <p class="tag-name">${c.nama}</p>
+      <p class="tag-comment">${c.komentar}</p>
+      <div class="tag-meta">
+        <span class="likes">▲ ${c.likes}</span>
+        <span>${formatDate(c.tanggal)}</span>
+      </div>
+      <span class="video-chip">${c.judul}</span>
+    </div>
+  `).join('');
+}
+
+function formatDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+}
+
+function doSearch(q){
+  q = q.trim().toLowerCase();
+  if(!q){ renderComments(MOCK_COMMENTS); return; }
+  const filtered = MOCK_COMMENTS.filter(c =>
+    c.komentar.toLowerCase().includes(q) ||
+    c.nama.toLowerCase().includes(q) ||
+    c.judul.toLowerCase().includes(q)
+  );
+  renderComments(filtered);
+}
+searchInput.addEventListener('input', e => doSearch(e.target.value));
+renderComments(MOCK_COMMENTS);
+
+/* ---------- Detail overlay ---------- */
+const overlay = document.getElementById('overlay');
+const sheetContent = document.getElementById('sheetContent');
+taglist.addEventListener('click', e => {
+  const card = e.target.closest('.tag-card');
+  if(!card) return;
+  const c = MOCK_COMMENTS.find(x => x.id === card.dataset.id);
+  if(!c) return;
+  sheetContent.innerHTML = `
+    <dt>Nama</dt><dd>${c.nama}</dd>
+    <dt>Komentar</dt><dd>${c.komentar}</dd>
+    <dt>Video Asal</dt><dd>${c.judul}</dd>
+    <dt>Likes</dt><dd>${c.likes}</dd>
+    <dt>Tanggal Komentar</dt><dd>${formatDate(c.tanggal)}</dd>
+    <dt>Balasan?</dt><dd>${c.balasan ? 'Ya' : 'Bukan balasan'}</dd>
+  `;
+  overlay.classList.add('open');
+});
+document.getElementById('closeBtn').addEventListener('click', () => overlay.classList.remove('open'));
+overlay.addEventListener('click', e => { if(e.target === overlay) overlay.classList.remove('open'); });
+
+/* ---------- Render: Insight ---------- */
+const themeList = document.getElementById('themeList');
+document.getElementById('insightDate').textContent = formatDate('2026-08-21');
+const maxJumlah = Math.max(...MOCK_THEMES.map(t => t.jumlah));
+themeList.innerHTML = MOCK_THEMES.map(t => `
+  <div class="theme-card">
+    <div class="theme-head">
+      <span class="theme-title">${t.tema}</span>
+      <span class="theme-count">${t.jumlah} komentar</span>
+    </div>
+    <div class="theme-bar-track"><div class="theme-bar-fill" style="width:${(t.jumlah/maxJumlah*100).toFixed(0)}%"></div></div>
+    <p class="theme-summary">${t.ringkasan}</p>
+    <div class="theme-examples">
+      ${t.contoh.map(ex => `<div class="ex">${ex}</div>`).join('')}
+    </div>
+  </div>
+`).join('');
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('view-' + tab.dataset.view).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
