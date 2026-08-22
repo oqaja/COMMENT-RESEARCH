@@ -411,36 +411,21 @@
 
 <script>
 /* =====================================================================
-   MOCK DATA — ganti dengan fetch ke Apps Script Web App saat backend siap.
-   Pola pemanggilan API sama seperti project PWA lain: pakai POST dengan
-   Content-Type: text/plain (hindari CORS preflight), body berisi JSON
-   { action: "searchComments" | "getThemes", ...params }.
-
-   const API_URL = "https://script.google.com/macros/s/XXXX/exec";
-   async function callApi(payload){
-     const res = await fetch(API_URL, {
-       method: "POST",
-       headers: { "Content-Type": "text/plain;charset=utf-8" },
-       body: JSON.stringify(payload)
-     });
-     return res.json();
-   }
+   Koneksi ke Apps Script Web App backend (CommentResearch.gs).
+   Pakai trik text/plain buat hindari CORS preflight.
 ===================================================================== */
+const API_URL = "https://script.google.com/macros/s/AKfycbwQaTo38-zDUwMgOJ3vWplmC-40bQicUVbMaUhPTLnijVs3zUZgmBWlL5cE9uAmdXII/exec";
 
-const MOCK_COMMENTS = [
-  {id:"c1", nama:"rafi_kicks", komentar:"Bang ini sepatunya masih ready ga size 42? udah nyari kemana2 abis mulu", likes:214, tanggal:"2026-08-21", judul:"Kenapa Harga Sneaker Lokal Segini Mahal?", balasan:false},
-  {id:"c2", nama:"denaputri", komentar:"Request dong bahas soal shoe last, penasaran kenapa sepatu lokal kadang sempit banget", likes:132, tanggal:"2026-08-20", judul:"Rahasia di Balik Ukuran Sepatu", balasan:false},
-  {id:"c3", nama:"maul.sneaks", komentar:"Ini beneran ori kan bang? soalnya banyak yg jual mirip tapi murah bgt", likes:98, tanggal:"2026-08-21", judul:"Cara Cek Sepatu KW vs Original", balasan:true},
-  {id:"c4", nama:"zharaa", komentar:"Kapan restock warna hitam min, dari kemarin abis terus", likes:301, tanggal:"2026-08-19", judul:"Unboxing Collab Terbaru", balasan:false},
-  {id:"c5", nama:"yoga_std", komentar:"Margin brand lokal segitu ternyata, pantes harganya segini. Video paling worth ditonton bulan ini", likes:410, tanggal:"2026-08-18", judul:"Segini Margin Untung Brand Sepatu Lokal", balasan:false},
-  {id:"c6", nama:"kirei.b", komentar:"Bahas dong perbedaan sole TPU sama EVA, banyak yg salah kaprah", likes:76, tanggal:"2026-08-17", judul:"Rahasia di Balik Ukuran Sepatu", balasan:false},
-];
+async function callApi(payload){
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
 
-const MOCK_THEMES = [
-  {tema:"Ketersediaan Ukuran & Restock", jumlah:187, ringkasan:"Penonton paling sering nanya ketersediaan size tertentu dan kapan warna favorit mereka restock — sinyal kuat demand belum ke-cover stok.", contoh:["Bang ini sepatunya masih ready ga size 42?","Kapan restock warna hitam min, dari kemarin abis terus"]},
-  {tema:"Keaslian Produk (Ori vs KW)", jumlah:124, ringkasan:"Banyak yang khawatir soal keaslian, terutama pas ada video harga/margin — trust jadi concern utama sebelum beli.", contoh:["Ini beneran ori kan bang? soalnya banyak yg jual mirip tapi murah"]},
-  {tema:"Request Konten Edukasi Teknis", jumlah:96, ringkasan:"Muncul cukup sering permintaan bahas hal teknis kayak shoe last, jenis sole, dan proses produksi.", contoh:["Request dong bahas soal shoe last","Bahas dong perbedaan sole TPU sama EVA"]},
-];
+let currentComments = [];
 
 /* ---------- Render: Search ---------- */
 const taglist = document.getElementById('taglist');
@@ -448,6 +433,7 @@ const resultCount = document.getElementById('resultCount');
 const searchInput = document.getElementById('searchInput');
 
 function renderComments(list){
+  currentComments = list;
   if(list.length === 0){
     taglist.innerHTML = '<div class="empty">Ga ada komentar yang cocok. Coba kata kunci lain.</div>';
     resultCount.textContent = '';
@@ -455,35 +441,54 @@ function renderComments(list){
   }
   resultCount.innerHTML = `<b>${list.length}</b> komentar ditemukan`;
   taglist.innerHTML = list.map(c => `
-    <div class="tag-card" data-id="${c.id}">
-      <p class="tag-name">${c.nama}</p>
-      <p class="tag-comment">${c.komentar}</p>
+    <div class="tag-card" data-id="${c.commentId}">
+      <p class="tag-name">${escapeHtml(c.nama)}</p>
+      <p class="tag-comment">${escapeHtml(c.komentar)}</p>
       <div class="tag-meta">
         <span class="likes">▲ ${c.likes}</span>
         <span>${formatDate(c.tanggal)}</span>
       </div>
-      <span class="video-chip">${c.judul}</span>
+      <span class="video-chip">${escapeHtml(c.judulVideo)}</span>
     </div>
   `).join('');
 }
 
+function renderLoading(){
+  taglist.innerHTML = '<div class="empty">Nyari komentar…</div>';
+  resultCount.textContent = '';
+}
+
+function renderError(msg){
+  taglist.innerHTML = `<div class="empty">Gagal muat data: ${escapeHtml(msg)}</div>`;
+  resultCount.textContent = '';
+}
+
 function formatDate(iso){
   const d = new Date(iso);
+  if(isNaN(d)) return iso;
   return d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
 }
 
-function doSearch(q){
-  q = q.trim().toLowerCase();
-  if(!q){ renderComments(MOCK_COMMENTS); return; }
-  const filtered = MOCK_COMMENTS.filter(c =>
-    c.komentar.toLowerCase().includes(q) ||
-    c.nama.toLowerCase().includes(q) ||
-    c.judul.toLowerCase().includes(q)
-  );
-  renderComments(filtered);
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+let searchDebounce;
+async function doSearch(keyword){
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(async () => {
+    renderLoading();
+    try {
+      const data = await callApi({ action: 'searchComments', keyword });
+      if(data.error){ renderError(data.error); return; }
+      renderComments(data.results || []);
+    } catch(err){
+      renderError('koneksi ke server bermasalah');
+    }
+  }, 350);
 }
 searchInput.addEventListener('input', e => doSearch(e.target.value));
-renderComments(MOCK_COMMENTS);
+doSearch(''); // load awal — tampilkan komentar terbaru
 
 /* ---------- Detail overlay ---------- */
 const overlay = document.getElementById('overlay');
@@ -491,12 +496,13 @@ const sheetContent = document.getElementById('sheetContent');
 taglist.addEventListener('click', e => {
   const card = e.target.closest('.tag-card');
   if(!card) return;
-  const c = MOCK_COMMENTS.find(x => x.id === card.dataset.id);
+  const c = currentComments.find(x => String(x.commentId) === card.dataset.id);
   if(!c) return;
+  const videoUrl = c.videoId ? `https://www.youtube.com/watch?v=${encodeURIComponent(c.videoId)}` : null;
   sheetContent.innerHTML = `
-    <dt>Nama</dt><dd>${c.nama}</dd>
-    <dt>Komentar</dt><dd>${c.komentar}</dd>
-    <dt>Video Asal</dt><dd>${c.judul}</dd>
+    <dt>Nama</dt><dd>${escapeHtml(c.nama)}</dd>
+    <dt>Komentar</dt><dd>${escapeHtml(c.komentar)}</dd>
+    <dt>Video Asal</dt><dd>${escapeHtml(c.judulVideo)}${videoUrl ? ` — <a href="${videoUrl}" target="_blank" rel="noopener" style="color:var(--teal);font-weight:600;">Buka video ↗</a>` : ''}</dd>
     <dt>Likes</dt><dd>${c.likes}</dd>
     <dt>Tanggal Komentar</dt><dd>${formatDate(c.tanggal)}</dd>
     <dt>Balasan?</dt><dd>${c.balasan ? 'Ya' : 'Bukan balasan'}</dd>
@@ -508,29 +514,51 @@ overlay.addEventListener('click', e => { if(e.target === overlay) overlay.classL
 
 /* ---------- Render: Insight ---------- */
 const themeList = document.getElementById('themeList');
-document.getElementById('insightDate').textContent = formatDate('2026-08-21');
-const maxJumlah = Math.max(...MOCK_THEMES.map(t => t.jumlah));
-themeList.innerHTML = MOCK_THEMES.map(t => `
-  <div class="theme-card">
-    <div class="theme-head">
-      <span class="theme-title">${t.tema}</span>
-      <span class="theme-count">${t.jumlah} komentar</span>
-    </div>
-    <div class="theme-bar-track"><div class="theme-bar-fill" style="width:${(t.jumlah/maxJumlah*100).toFixed(0)}%"></div></div>
-    <p class="theme-summary">${t.ringkasan}</p>
-    <div class="theme-examples">
-      ${t.contoh.map(ex => `<div class="ex">${ex}</div>`).join('')}
-    </div>
-  </div>
-`).join('');
+const insightDateEl = document.getElementById('insightDate');
+
+async function loadThemes(){
+  themeList.innerHTML = '<div class="empty">Muat insight…</div>';
+  try {
+    const data = await callApi({ action: 'getThemes' });
+    const themes = data.themes || [];
+    insightDateEl.textContent = data.generatedAt ? formatDate(data.generatedAt) : '-';
+
+    if(themes.length === 0){
+      themeList.innerHTML = '<div class="empty">Belum ada insight yang di-generate. Insight pertama muncul setelah run harian jam 21:00.</div>';
+      return;
+    }
+
+    const maxJumlah = Math.max(...themes.map(t => t.jumlah || 0));
+    themeList.innerHTML = themes.map(t => `
+      <div class="theme-card">
+        <div class="theme-head">
+          <span class="theme-title">${escapeHtml(t.tema)}</span>
+          <span class="theme-count">${t.jumlah} komentar</span>
+        </div>
+        <div class="theme-bar-track"><div class="theme-bar-fill" style="width:${maxJumlah ? (t.jumlah/maxJumlah*100).toFixed(0) : 0}%"></div></div>
+        <p class="theme-summary">${escapeHtml(t.ringkasan)}</p>
+        <div class="theme-examples">
+          ${(t.contoh || []).map(ex => `<div class="ex">${escapeHtml(ex)}</div>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch(err){
+    themeList.innerHTML = '<div class="empty">Gagal muat insight, coba refresh.</div>';
+  }
+}
 
 /* ---------- Tabs ---------- */
+let themesLoaded = false;
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('view-' + tab.dataset.view).classList.add('active');
+    if(tab.dataset.view === 'insight' && !themesLoaded){
+      themesLoaded = true;
+      loadThemes();
+    }
   });
 });
 </script>
