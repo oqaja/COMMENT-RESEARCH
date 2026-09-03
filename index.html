@@ -330,6 +330,118 @@
     font-size:16px;
   }
 
+  /* ----- Theme card: field baru ----- */
+  .theme-head-right{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .theme-trend{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.02em;
+    white-space:nowrap;
+  }
+  .theme-trend.naik{color:var(--orange);}
+  .theme-trend.turun{color:var(--teal);}
+  .theme-trend.stabil{color:var(--ink-soft);}
+  .theme-trend.baru{
+    color:var(--orange);
+    background:#FDEBE4;
+    border:1px solid #F6CDBE;
+    padding:2px 8px;
+    border-radius:20px;
+  }
+  .theme-meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .theme-badge{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:.03em;
+    padding:3px 9px;
+    border-radius:20px;
+    border:1px solid var(--hairline);
+    white-space:nowrap;
+  }
+  .theme-badge.tipe-pertanyaan{
+    color:var(--teal);
+    background:#E6F1EF;
+    border-color:#C7DEDA;
+  }
+  .theme-badge.tipe-opini{
+    color:var(--orange);
+    background:#FDEBE4;
+    border-color:#F6CDBE;
+  }
+  .theme-saran{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    letter-spacing:.02em;
+  }
+  .theme-produk{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin:0 0 10px;
+  }
+  .theme-chip{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink);
+    background:var(--canvas);
+    border:1px solid var(--hairline);
+    padding:3px 8px;
+    border-radius:6px;
+  }
+  .theme-videos{
+    border-top:1px dashed var(--hairline);
+    padding-top:10px;
+    margin-top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .theme-videos .vid-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-soft);
+  }
+  .theme-videos a{
+    font-size:13px;
+    color:var(--teal);
+    font-weight:600;
+    text-decoration:none;
+    line-height:1.4;
+    padding-left:15px;
+    position:relative;
+  }
+  .theme-videos a::before{
+    content:"▶";
+    position:absolute;left:0;top:1px;
+    font-size:9px;
+    color:var(--orange);
+  }
+  .theme-videos a:hover{text-decoration:underline;}
+  .theme-history{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    letter-spacing:.02em;
+  }
+
   /* ===== Detail overlay ===== */
   .overlay{
     position:fixed;inset:0;
@@ -500,6 +612,22 @@ function formatDate(iso){
   return d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
 }
 
+function formatShortDate(iso){
+  const d = new Date(iso);
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('id-ID', {day:'numeric', month:'short'});
+}
+
+function trendMarkup(trend){
+  switch(trend){
+    case 'Naik':   return '<span class="theme-trend naik">↑ Naik</span>';
+    case 'Turun':  return '<span class="theme-trend turun">↓ Turun</span>';
+    case 'Stabil': return '<span class="theme-trend stabil">→ Stabil</span>';
+    case 'Baru':   return '<span class="theme-trend baru">🆕 Baru</span>';
+    default:       return '';
+  }
+}
+
 function escapeHtml(str){
   return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
@@ -572,19 +700,42 @@ async function loadThemes(){
     }
 
     const maxJumlah = Math.max(...themes.map(t => t.jumlah || 0));
-    themeList.innerHTML = themes.map(t => `
+    themeList.innerHTML = themes.map(t => {
+      const tipeClass = t.tipe === 'Pertanyaan' ? 'tipe-pertanyaan' : 'tipe-opini';
+      const produk = (t.produkDisebut || []).filter(Boolean);
+      const videos = (t.videoAsal || []).filter(v => v && v.judul && v.link);
+      const riwayat = t.riwayatTanggal || [];
+      const riwayatPast = riwayat.filter(d => d !== data.generatedAt);
+      const showRiwayat = riwayat.length > 1 && riwayatPast.length > 0;
+      return `
       <div class="theme-card">
         <div class="theme-head">
           <span class="theme-title">${escapeHtml(t.tema)}</span>
-          <span class="theme-count">${t.jumlah} komentar</span>
+          <span class="theme-head-right">
+            ${trendMarkup(t.trend)}
+            <span class="theme-count">${t.jumlah} komentar</span>
+          </span>
         </div>
         <div class="theme-bar-track"><div class="theme-bar-fill" style="width:${maxJumlah ? (t.jumlah/maxJumlah*100).toFixed(0) : 0}%"></div></div>
+        ${(t.tipe || t.saranFormat) ? `<div class="theme-meta-row">
+          ${t.tipe ? `<span class="theme-badge ${tipeClass}">${escapeHtml(t.tipe)}</span>` : ''}
+          ${t.saranFormat ? `<span class="theme-saran">💡 Saran: ${escapeHtml(t.saranFormat)}</span>` : ''}
+        </div>` : ''}
         <p class="theme-summary">${escapeHtml(t.ringkasan)}</p>
+        ${produk.length ? `<div class="theme-produk">
+          ${produk.map(p => `<span class="theme-chip">${escapeHtml(p)}</span>`).join('')}
+        </div>` : ''}
         <div class="theme-examples">
           ${(t.contoh || []).map(ex => `<div class="ex">${escapeHtml(ex)}</div>`).join('')}
         </div>
+        ${videos.length ? `<div class="theme-videos">
+          <span class="vid-label">Video Asal</span>
+          ${videos.map(v => `<a href="${escapeHtml(v.link)}" target="_blank" rel="noopener">${escapeHtml(v.judul)}</a>`).join('')}
+        </div>` : ''}
+        ${showRiwayat ? `<div class="theme-history">Pernah muncul: ${riwayatPast.map(formatShortDate).join(', ')}</div>` : ''}
       </div>
-    `).join('');
+    `;
+    }).join('');
   } catch(err){
     themeList.innerHTML = '<div class="empty">Gagal muat insight, coba refresh.</div>';
   }
