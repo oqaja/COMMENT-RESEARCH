@@ -434,6 +434,22 @@
     color:var(--orange);
   }
   .theme-videos a:hover{text-decoration:underline;}
+  .theme-videos a.vid-hidden{display:none;}
+  .theme-videos.expanded a.vid-hidden{display:block;}
+  .theme-videos-toggle{
+    align-self:flex-start;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.02em;
+    color:var(--teal);
+    background:none;
+    border:none;
+    padding:2px 0;
+    margin-top:2px;
+    cursor:pointer;
+  }
+  .theme-videos-toggle:hover{text-decoration:underline;}
   .theme-history{
     font-family:'IBM Plex Mono',monospace;
     font-size:11px;
@@ -687,6 +703,15 @@ overlay.addEventListener('click', e => { if(e.target === overlay) overlay.classL
 const themeList = document.getElementById('themeList');
 const insightDateEl = document.getElementById('insightDate');
 
+/* toggle "Video Asal" per kartu tema — state independen tiap kartu */
+themeList.addEventListener('click', e => {
+  const btn = e.target.closest('.theme-videos-toggle');
+  if(!btn) return;
+  const box = btn.closest('.theme-videos');
+  const expanded = box.classList.toggle('expanded');
+  btn.textContent = expanded ? 'Sembunyikan ▴' : `Lihat semua (${btn.dataset.total}) ▾`;
+});
+
 async function loadThemes(){
   themeList.innerHTML = '<div class="empty">Muat insight…</div>';
   try {
@@ -730,7 +755,8 @@ async function loadThemes(){
         </div>
         ${videos.length ? `<div class="theme-videos">
           <span class="vid-label">Video Asal</span>
-          ${videos.map(v => `<a href="${escapeHtml(v.link)}" target="_blank" rel="noopener">${escapeHtml(v.judul)}</a>`).join('')}
+          ${videos.map((v, i) => `<a href="${escapeHtml(v.link)}" target="_blank" rel="noopener"${i >= 3 ? ' class="vid-hidden"' : ''}>${escapeHtml(v.judul)}</a>`).join('')}
+          ${videos.length > 3 ? `<button type="button" class="theme-videos-toggle" data-total="${videos.length}">Lihat semua (${videos.length}) ▾</button>` : ''}
         </div>` : ''}
         ${showRiwayat ? `<div class="theme-history">Pernah muncul: ${riwayatPast.map(formatShortDate).join(', ')}</div>` : ''}
       </div>
